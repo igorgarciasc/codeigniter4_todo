@@ -48,12 +48,6 @@ class TarefaModel extends Model
     // Callbacks
     protected $allowCallbacks       = true;
     protected $beforeInsert         = ['setCreatedAt'];
-    protected $afterInsert          = [];
     protected $beforeUpdate         = ['setUpdatedAt'];
-    protected $afterUpdate          = [];
-    protected $beforeFind           = [];
-    protected $afterFind            = [];
-    protected $beforeDelete         = [];
-    protected $afterDelete          = [];
 
 }

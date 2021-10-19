@@ -1,5 +1,9 @@
 <?php
+
 namespace App\Controllers;
+
+header('Access-Control-Allow-Origin: *');
+
 use CodeIgniter\RESTful\ResourceController;
 use CodeIgniter\API\ResponseTrait;
 
@@ -99,7 +103,7 @@ class Tarefa extends ResourceController
         }
 
         try{
-            $tarefa = $data = $this->model->find($id);
+            $tarefa = $this->model->find($id);
             if($tarefa){
                 $this->model->delete($id);
                 return $this->makeResponse(200,'Tarefa removida com sucesso');
@@ -114,8 +118,16 @@ class Tarefa extends ResourceController
     // CREATE
     public function create()
     {
-        $tarefa = new TarefaEntity($this->getFieldsFromRequest());
-
+        $dataFromRequest = $this->getFieldsFromRequest();
+        if( is_null($dataFromRequest['situacao']) || $dataFromRequest['situacao'] == '' || 
+            is_null($dataFromRequest['prioridade']) || $dataFromRequest['prioridade'] == '' ||
+            is_null($dataFromRequest['titulo']) || $dataFromRequest['titulo'] == '' ||
+            is_null($dataFromRequest['descricao']) || $dataFromRequest['descricao'] == ''
+        ){
+            return $this->makeResponse(400,'Ops, você esqueceu algum campo obrigatório',null,true);
+        }
+        
+        $tarefa = new TarefaEntity($dataFromRequest);
         try{
             $this->model->save($tarefa);
             return $this->makeResponse(201,'Tarefa adicionada com sucesso!');
@@ -124,7 +136,7 @@ class Tarefa extends ResourceController
         }
     }
 
-
+    // UPDATE
     public function update($id=null)
     {
         if(is_null($id) || $id==''){
