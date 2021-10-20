@@ -16,6 +16,7 @@ $routes->set404Override();
 $routes->setAutoRoute(true);
 
 $routes->resource('tarefa');
+$routes->resource('pessoa');
 
 if (file_exists(APPPATH . 'Config/' . ENVIRONMENT . '/Routes.php')) {
     require APPPATH . 'Config/' . ENVIRONMENT . '/Routes.php';

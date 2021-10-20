@@ -2,8 +2,6 @@
 
 namespace App\Controllers;
 
-header('Access-Control-Allow-Origin: *');
-
 use CodeIgniter\RESTful\ResourceController;
 use CodeIgniter\API\ResponseTrait;
 
@@ -15,13 +13,21 @@ class Tarefa extends ResourceController
     use ResponseTrait;
     public function __construct()
     {
+        header('Access-Control-Allow-Origin: *');
+        header("Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method, Authorization");
+        header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
+        $method = $_SERVER['REQUEST_METHOD'];
+        if ($method == "OPTIONS") {
+            die();
+        }
+        
         $this->model = new TarefaModel();
         $this->fields = [
                 "pessoa" => 'pessoa',
                 "situacao"=> 'situacao',
                 "prioridade"=> 'prioridade',
                 "titulo"=> 'titulo',
-                "descricao"=> 'descricao'
+                "descricao"=> 'descricao',
         ];
     }
 
@@ -65,18 +71,18 @@ class Tarefa extends ResourceController
         return $dataReturn;
     }
 
-    //LIST ALL
+    // LIST ALL
     public function index()
      {
         try{
-            $data['tarefas'] = $this->model->orderBy('ido', 'DESC')->findAll();    
+            $data['tarefas'] = $this->model->orderBy('tarefa.prioridade','DESC')->orderBy('tarefa.ido', 'DESC')->findAllJoinFilterColumns();  
             return $this->makeResponse(200,null,$data);
         }catch(\Exception $e){
             return $this->makeResponse(400,$e->getMessage(),null,true);
         }
      }
-
-    // FIND ONE
+    
+     // FIND ONE
     public function show($id=null)
     {
         if(is_null($id) || $id==''){
@@ -118,13 +124,28 @@ class Tarefa extends ResourceController
     // CREATE
     public function create()
     {
+
         $dataFromRequest = $this->getFieldsFromRequest();
-        if( is_null($dataFromRequest['situacao']) || $dataFromRequest['situacao'] == '' || 
-            is_null($dataFromRequest['prioridade']) || $dataFromRequest['prioridade'] == '' ||
+
+        if( is_null($dataFromRequest['prioridade']) || $dataFromRequest['prioridade'] == '' ||
             is_null($dataFromRequest['titulo']) || $dataFromRequest['titulo'] == '' ||
             is_null($dataFromRequest['descricao']) || $dataFromRequest['descricao'] == ''
         ){
             return $this->makeResponse(400,'Ops, você esqueceu algum campo obrigatório',null,true);
+        }
+
+        if(!array_key_exists('situacao', $dataFromRequest) || is_null($dataFromRequest['situacao']) || $dataFromRequest['situacao'] == ''){
+            $dataFromRequest['situacao'] = 1;
+        }
+
+        if(array_key_exists('pessoa', $dataFromRequest) && !is_null($dataFromRequest['pessoa']) && $dataFromRequest['pessoa'] != ''){
+            if($this->model->checkMore3Tarefas($dataFromRequest['pessoa'])){
+                return $this->makeResponse(400,'Ops, você já atingiu o máximo de tarefas para este usuário',null,true);
+            }
+        }
+
+        if($dataFromRequest['pessoa'] == '0'){
+            $dataFromRequest['pessoa'] = null;
         }
         
         $tarefa = new TarefaEntity($dataFromRequest);
@@ -147,17 +168,24 @@ class Tarefa extends ResourceController
             $objectUpdate = $this->model->find($id);
             if($objectUpdate)
             {
-                $fields = $this->getFieldsFromRequest();
-                if(isset($fields['pessoa'])){
-                    $fields['ido_pessoa'] = $fields['pessoa'];
-                    unset($fields['pessoa']);
+                $dataFromRequest = $this->getFieldsFromRequest();
+
+                if($dataFromRequest['pessoa'] == '0'){
+                    $dataFromRequest['pessoa'] = null;
+                }else if($this->model->checkMore3Tarefas($dataFromRequest['pessoa'])){
+                    return $this->makeResponse(400,'Ops, você já atingiu o máximo de tarefas para este usuário',null,true);
                 }
-                if(isset($fields['situacao'])){
-                    $fields['ido_situacao'] = $fields['situacao'];
-                    unset($fields['situacao']);
+                
+                if(isset($dataFromRequest['pessoa'])){
+                    $dataFromRequest['ido_pessoa'] = $dataFromRequest['pessoa'];
+                    unset($dataFromRequest['pessoa']);
+                }
+                if(isset($dataFromRequest['situacao'])){
+                    $dataFromRequest['ido_situacao'] = $dataFromRequest['situacao'];
+                    unset($dataFromRequest['situacao']);
                 }
 
-                foreach($fields as $key=>$value){
+                foreach($dataFromRequest as $key=>$value){
                     $objectUpdate->$key = $value;
                 }
 

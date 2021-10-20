@@ -50,4 +50,28 @@ class TarefaModel extends Model
     protected $beforeInsert         = ['setCreatedAt'];
     protected $beforeUpdate         = ['setUpdatedAt'];
 
+    public function findAllJoinFilterColumns() {
+        $tarefas = $this
+            ->select(['tarefa.ido','tarefa.prioridade','tarefa.titulo','tarefa.descricao','tarefa.ido_pessoa','pessoa.nome as pessoa_nome','tarefa.ido_situacao','situacao.descricao as situacao_descricao'])
+            ->join('pessoa', 'tarefa.ido_pessoa = pessoa.ido', 'left')
+            ->join('situacao_tarefa as situacao','tarefa.ido_situacao = situacao.ido')
+            ->findAll();
+        return $tarefas;
+    }
+
+    public function checkMore3Tarefas($idoPessoa) {
+        
+        $db      = \Config\Database::connect();
+        $builder = $db->table('tarefa');
+        $builder->where('ido_pessoa',$idoPessoa);
+        $builder->where('deleted_at is null');
+        $totalTarefas = $builder->countAllResults();
+
+        if($totalTarefas >= 3){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
 }

@@ -8,8 +8,7 @@ class Tarefa extends Entity
 {
     protected $datamap = [
         "pessoa"=>"ido_pessoa",
-        "situacao"=>"ido_situacao",
-        "deleted"=>"deleted_at"
+        "situacao"=>"ido_situacao"
     ];
 
     protected $dates   = [
