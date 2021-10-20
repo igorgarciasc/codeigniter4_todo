@@ -75,7 +75,7 @@ class Tarefa extends ResourceController
     public function index()
      {
         try{
-            $data['tarefas'] = $this->model->orderBy('tarefa.prioridade','DESC')->orderBy('tarefa.ido', 'DESC')->findAllJoinFilterColumns();  
+            $data['tarefas'] = $this->model->orderBy('tarefa.prioridade','ASC')->orderBy('tarefa.ido', 'ASC')->findAllJoinFilterColumns();  
             return $this->makeResponse(200,null,$data);
         }catch(\Exception $e){
             return $this->makeResponse(400,$e->getMessage(),null,true);
@@ -127,15 +127,12 @@ class Tarefa extends ResourceController
 
         $dataFromRequest = $this->getFieldsFromRequest();
 
-        if( is_null($dataFromRequest['prioridade']) || $dataFromRequest['prioridade'] == '' ||
+        if( 
+            is_null($dataFromRequest['prioridade']) || $dataFromRequest['prioridade'] == '' ||
             is_null($dataFromRequest['titulo']) || $dataFromRequest['titulo'] == '' ||
             is_null($dataFromRequest['descricao']) || $dataFromRequest['descricao'] == ''
         ){
             return $this->makeResponse(400,'Ops, você esqueceu algum campo obrigatório',null,true);
-        }
-
-        if(!array_key_exists('situacao', $dataFromRequest) || is_null($dataFromRequest['situacao']) || $dataFromRequest['situacao'] == ''){
-            $dataFromRequest['situacao'] = 1;
         }
 
         if(array_key_exists('pessoa', $dataFromRequest) && !is_null($dataFromRequest['pessoa']) && $dataFromRequest['pessoa'] != ''){
@@ -144,9 +141,8 @@ class Tarefa extends ResourceController
             }
         }
 
-        if($dataFromRequest['pessoa'] == '0'){
-            $dataFromRequest['pessoa'] = null;
-        }
+        $dataFromRequest['situacao'] = 1;
+        $dataFromRequest['pessoa'] = $dataFromRequest['pessoa'] == '0' ? null : $dataFromRequest['pessoa'];
         
         $tarefa = new TarefaEntity($dataFromRequest);
         try{
@@ -166,20 +162,24 @@ class Tarefa extends ResourceController
         
         try{
             $objectUpdate = $this->model->find($id);
+
             if($objectUpdate)
             {
                 $dataFromRequest = $this->getFieldsFromRequest();
 
-                if($dataFromRequest['pessoa'] == '0'){
-                    $dataFromRequest['pessoa'] = null;
-                }else if($this->model->checkMore3Tarefas($dataFromRequest['pessoa'])){
-                    return $this->makeResponse(400,'Ops, você já atingiu o máximo de tarefas para este usuário',null,true);
+                if(array_key_exists('pessoa', $dataFromRequest)){
+                    if($objectUpdate->pessoa != $dataFromRequest['pessoa']){
+                        if($dataFromRequest['pessoa'] == '0'){
+                            $dataFromRequest['pessoa'] = null;
+                        }else if($this->model->checkMore3Tarefas($dataFromRequest['pessoa'])){
+                            return $this->makeResponse(400,'Ops, você já atingiu o máximo de tarefas para este usuário',null,true);
+                        }
+                        $dataFromRequest['ido_pessoa'] = $dataFromRequest['pessoa'];
+                    }else{
+                        unset($dataFromRequest['pessoa']);
+                    }
                 }
-                
-                if(isset($dataFromRequest['pessoa'])){
-                    $dataFromRequest['ido_pessoa'] = $dataFromRequest['pessoa'];
-                    unset($dataFromRequest['pessoa']);
-                }
+
                 if(isset($dataFromRequest['situacao'])){
                     $dataFromRequest['ido_situacao'] = $dataFromRequest['situacao'];
                     unset($dataFromRequest['situacao']);
